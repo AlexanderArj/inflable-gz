@@ -1,9 +1,11 @@
 // --- ESTADO DE LA APLICACIÓN ---
 let participants = [];
+let dailyTotalCount = 0; // Nueva variable para el acumulado histórico
 const DEFAULT_MINUTES = 16;
 let timerInterval;
 
 // --- ELEMENTOS DEL DOM ---
+// (Mantenemos los mismos selectores...)
 const themeToggleBtn = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const currentDateEl = document.getElementById('current-date');
@@ -18,14 +20,12 @@ const participantListEl = document.getElementById('participant-list');
 function init() {
     setupDate();
     loadTheme();
-    loadParticipants();
+    loadData(); // Cambiado de loadParticipants a loadData para cargar ambos valores
     renderAllParticipants();
-    updateTotalCount();
+    updateTotalCountUI();
     
-    // Iniciar el bucle principal del reloj (se ejecuta cada segundo)
     timerInterval = setInterval(tick, 1000);
 
-    // Event Listeners
     themeToggleBtn.addEventListener('click', toggleTheme);
     showAddFormBtn.addEventListener('click', () => {
         addForm.classList.toggle('hidden');
@@ -37,101 +37,76 @@ function init() {
     startBtn.addEventListener('click', handleAddParticipant);
 }
 
-// --- FUNCIONES DE FECHA Y TEMA ---
-function setupDate() {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    currentDateEl.textContent = new Date().toLocaleDateString('es-ES', options);
-}
+// --- PERSISTENCIA DE DATOS ---
+function loadData() {
+    // Cargamos la lista de participantes activos
+    const savedParticipants = localStorage.getItem('gameTrackerParticipants');
+    if (savedParticipants) {
+        participants = JSON.parse(savedParticipants);
+    }
 
-function toggleTheme() {
-    const htmlEl = document.documentElement;
-    const currentTheme = htmlEl.getAttribute('data-theme');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    
-    htmlEl.setAttribute('data-theme', newTheme);
-    themeIcon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
-    localStorage.setItem('gameTrackerTheme', newTheme);
-}
-
-function loadTheme() {
-    const savedTheme = localStorage.getItem('gameTrackerTheme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    themeIcon.textContent = savedTheme === 'light' ? 'dark_mode' : 'light_mode';
-}
-
-// --- LOGICA DE PARTICIPANTES ---
-function loadParticipants() {
-    const savedData = localStorage.getItem('gameTrackerParticipants');
-    if (savedData) {
-        participants = JSON.parse(savedData);
+    // Cargamos el contador histórico del día
+    const savedCount = localStorage.getItem('gameTrackerTotalCount');
+    if (savedCount) {
+        dailyTotalCount = parseInt(savedCount, 10);
     }
 }
 
-function saveParticipants() {
+function saveData() {
+    // Guardamos ambos valores de forma independiente
     localStorage.setItem('gameTrackerParticipants', JSON.stringify(participants));
-    updateTotalCount();
+    localStorage.setItem('gameTrackerTotalCount', dailyTotalCount.toString());
+    updateTotalCountUI();
 }
 
-function updateTotalCount() {
-    // Cuenta los participantes del día (los que están en el arreglo)
-    countNumberEl.textContent = participants.length;
+function updateTotalCountUI() {
+    // Ahora mostramos el acumulado histórico, no el largo del array
+    countNumberEl.textContent = dailyTotalCount;
 }
+
+// --- LOGICA DE PARTICIPANTES ---
 
 function handleAddParticipant() {
     const name = participantNameInput.value.trim();
     if (!name) return;
 
     const newParticipant = {
-        id: Date.now().toString(), // ID único
+        id: Date.now().toString(),
         name: name,
-        endTime: Date.now() + (DEFAULT_MINUTES * 60 * 1000) // Timestamp exacto de finalización
+        endTime: Date.now() + (DEFAULT_MINUTES * 60 * 1000)
     };
 
-    participants.unshift(newParticipant); // Añadir al principio de la lista
-    saveParticipants();
+    // 1. Añadimos al participante a la lista activa
+    participants.unshift(newParticipant); 
     
-    // Resetear formulario
+    // 2. Aumentamos el contador histórico (esto no bajará nunca al borrar)
+    dailyTotalCount++; 
+    
+    // 3. Guardamos todo
+    saveData();
+    
     participantNameInput.value = '';
     addForm.classList.add('hidden');
-    
-    // Re-renderizar
     renderAllParticipants();
 }
 
 function removeParticipant(id) {
+    // Al filtrar, solo afectamos la visibilidad en la lista, 
+    // pero no tocamos 'dailyTotalCount'
     participants = participants.filter(p => p.id !== id);
-    saveParticipants();
+    saveData();
     renderAllParticipants();
 }
 
-function addTimeToParticipant(id, minutesToAdd) {
-    const pIndex = participants.findIndex(p => p.id === id);
-    if (pIndex > -1) {
-        const now = Date.now();
-        // Si el tiempo ya había terminado, calculamos a partir de AHORA.
-        // Si aún tenía tiempo, se lo sumamos a su tiempo restante (endTime).
-        if (participants[pIndex].endTime < now) {
-            participants[pIndex].endTime = now + (minutesToAdd * 60 * 1000);
-        } else {
-            participants[pIndex].endTime += (minutesToAdd * 60 * 1000);
-        }
-        
-        saveParticipants();
-        // Forzar una actualización de la tarjeta inmediatamente
-        updateParticipantCardDOM(participants[pIndex], document.getElementById(`card-${id}`));
-    }
-}
+// ... (Resto de funciones: addTimeToParticipant, toggleTheme, tick, renderAllParticipants, etc., se mantienen igual que en la versión anterior)
 
-// --- RENDERIZADO Y BUCLE DE TIEMPO ---
-
-// Renderiza la lista inicial
+// Asegúrate de incluir las funciones de renderizado y el bucle de tiempo que definimos antes
 function renderAllParticipants() {
     participantListEl.innerHTML = '';
     participants.forEach(p => {
         const li = document.createElement('li');
         li.id = `card-${p.id}`;
         li.className = 'participant-card';
-        
         li.innerHTML = `
             <div class="card-header">
                 <span class="p-name">${p.name}</span>
@@ -148,13 +123,25 @@ function renderAllParticipants() {
                 </button>
             </div>
         `;
-        
         participantListEl.appendChild(li);
         updateParticipantCardDOM(p, li);
     });
 }
 
-// Bucle que se ejecuta cada segundo
+function addTimeToParticipant(id, minutesToAdd) {
+    const pIndex = participants.findIndex(p => p.id === id);
+    if (pIndex > -1) {
+        const now = Date.now();
+        if (participants[pIndex].endTime < now) {
+            participants[pIndex].endTime = now + (minutesToAdd * 60 * 1000);
+        } else {
+            participants[pIndex].endTime += (minutesToAdd * 60 * 1000);
+        }
+        saveData();
+        updateParticipantCardDOM(participants[pIndex], document.getElementById(`card-${id}`));
+    }
+}
+
 function tick() {
     const now = Date.now();
     participants.forEach(p => {
@@ -165,35 +152,44 @@ function tick() {
     });
 }
 
-// Actualiza solo el texto del temporizador y las clases CSS
 function updateParticipantCardDOM(participant, cardElement, currentTime = Date.now()) {
     const timerEl = cardElement.querySelector(`#timer-${participant.id}`);
-    
     const timeDiff = participant.endTime - currentTime;
     
     if (timeDiff <= 0) {
-        // Tiempo terminado
         timerEl.textContent = "00:00";
         if (!cardElement.classList.contains('time-up')) {
             cardElement.classList.add('time-up');
         }
     } else {
-        // Aún hay tiempo
         if (cardElement.classList.contains('time-up')) {
             cardElement.classList.remove('time-up');
         }
-        
-        // Formatear a MM:SS
         const totalSeconds = Math.floor(timeDiff / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
-        
-        const formattedMinutes = String(minutes).padStart(2, '0');
-        const formattedSeconds = String(seconds).padStart(2, '0');
-        
-        timerEl.textContent = `${formattedMinutes}:${formattedSeconds}`;
+        timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 }
 
-// Iniciar app
+function setupDate() {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    currentDateEl.textContent = new Date().toLocaleDateString('es-ES', options);
+}
+
+function toggleTheme() {
+    const htmlEl = document.documentElement;
+    const currentTheme = htmlEl.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    htmlEl.setAttribute('data-theme', newTheme);
+    themeIcon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
+    localStorage.setItem('gameTrackerTheme', newTheme);
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('gameTrackerTheme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeIcon.textContent = savedTheme === 'light' ? 'dark_mode' : 'light_mode';
+}
+
 document.addEventListener('DOMContentLoaded', init);
