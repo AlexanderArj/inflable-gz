@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Time Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div id="desktop-warning">
+        <span class="material-icons" style="font-size: 48px;">smartphone</span>
+        <h2>App Móvil</h2>
+        <p>Esta aplicación está diseñada exclusivamente para su uso en dispositivos móviles.</p>
+    </div>
+
+    <div id="app-container">
+        <header class="sticky-header">
+            <div class="header-info">
+                <span id="current-date" class="date-text"></span>
+                <span class="participant-count"><span id="count-number">0</span> Participantes Hoy</span>
+            </div>
+            <button id="theme-toggle" class="icon-btn">
+                <span class="material-icons" id="theme-icon">dark_mode</span>
+            </button>
+        </header>
+
+        <main>
+            <div class="add-section">
+                <button id="show-add-form-btn" class="fab-btn">
+                    <span class="material-icons">add</span>
+                </button>
+                <div id="add-form" class="hidden form-card">
+                    <input type="text" id="participant-name" placeholder="Nombre del participante" autocomplete="off">
+                    <button id="start-btn" class="primary-btn">Comenzar (16:00)</button>
+                </div>
+            </div>
+
+            <ul id="participant-list" class="participant-list">
+                </ul>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
