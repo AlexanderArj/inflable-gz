@@ -1,11 +1,8 @@
-// --- ESTADO DE LA APLICACIÓN ---
 let participants = [];
-let dailyTotalCount = 0; // Nueva variable para el acumulado histórico
+let dailyTotalCount = 0;
 const DEFAULT_MINUTES = 16;
 let timerInterval;
 
-// --- ELEMENTOS DEL DOM ---
-// (Mantenemos los mismos selectores...)
 const themeToggleBtn = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const currentDateEl = document.getElementById('current-date');
@@ -16,11 +13,10 @@ const participantNameInput = document.getElementById('participant-name');
 const startBtn = document.getElementById('start-btn');
 const participantListEl = document.getElementById('participant-list');
 
-// --- INICIALIZACIÓN ---
 function init() {
     setupDate();
     loadTheme();
-    loadData(); // Cambiado de loadParticipants a loadData para cargar ambos valores
+    loadData();
     renderAllParticipants();
     updateTotalCountUI();
     
@@ -37,15 +33,12 @@ function init() {
     startBtn.addEventListener('click', handleAddParticipant);
 }
 
-// --- PERSISTENCIA DE DATOS ---
 function loadData() {
-    // Cargamos la lista de participantes activos
     const savedParticipants = localStorage.getItem('gameTrackerParticipants');
     if (savedParticipants) {
         participants = JSON.parse(savedParticipants);
     }
 
-    // Cargamos el contador histórico del día
     const savedCount = localStorage.getItem('gameTrackerTotalCount');
     if (savedCount) {
         dailyTotalCount = parseInt(savedCount, 10);
@@ -53,18 +46,14 @@ function loadData() {
 }
 
 function saveData() {
-    // Guardamos ambos valores de forma independiente
     localStorage.setItem('gameTrackerParticipants', JSON.stringify(participants));
     localStorage.setItem('gameTrackerTotalCount', dailyTotalCount.toString());
     updateTotalCountUI();
 }
 
 function updateTotalCountUI() {
-    // Ahora mostramos el acumulado histórico, no el largo del array
     countNumberEl.textContent = dailyTotalCount;
 }
-
-// --- LOGICA DE PARTICIPANTES ---
 
 function handleAddParticipant() {
     const name = participantNameInput.value.trim();
@@ -76,13 +65,8 @@ function handleAddParticipant() {
         endTime: Date.now() + (DEFAULT_MINUTES * 60 * 1000)
     };
 
-    // 1. Añadimos al participante a la lista activa
     participants.unshift(newParticipant); 
-    
-    // 2. Aumentamos el contador histórico (esto no bajará nunca al borrar)
     dailyTotalCount++; 
-    
-    // 3. Guardamos todo
     saveData();
     
     participantNameInput.value = '';
@@ -91,16 +75,11 @@ function handleAddParticipant() {
 }
 
 function removeParticipant(id) {
-    // Al filtrar, solo afectamos la visibilidad en la lista, 
-    // pero no tocamos 'dailyTotalCount'
     participants = participants.filter(p => p.id !== id);
     saveData();
     renderAllParticipants();
 }
 
-// ... (Resto de funciones: addTimeToParticipant, toggleTheme, tick, renderAllParticipants, etc., se mantienen igual que en la versión anterior)
-
-// Asegúrate de incluir las funciones de renderizado y el bucle de tiempo que definimos antes
 function renderAllParticipants() {
     participantListEl.innerHTML = '';
     participants.forEach(p => {

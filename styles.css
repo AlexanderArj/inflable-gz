@@ -1,4 +1,3 @@
-/* Variables para temas Claro / Oscuro */
 :root {
     --bg-color: #f4f6f8;
     --card-bg: #ffffff;
@@ -6,7 +5,7 @@
     --text-secondary: #666666;
     --primary-color: #4a90e2;
     --danger-color: #e74c3c;
-    --warning-color: #d35400; /* Naranja oscuro */
+    --warning-color: #d35400;
     --border-color: #e0e0e0;
     --header-bg: rgba(255, 255, 255, 0.95);
     --shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -36,7 +35,6 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
-/* Control de visualización por dispositivo */
 #desktop-warning {
     display: none;
     height: 100vh;
@@ -53,7 +51,6 @@ body {
     padding-bottom: 40px;
 }
 
-/* Ocultar app y mostrar advertencia en pantallas mayores a 768px */
 @media (min-width: 768px) {
     #desktop-warning {
         display: flex;
@@ -63,7 +60,6 @@ body {
     }
 }
 
-/* Header Sticky */
 .sticky-header {
     position: sticky;
     top: 0;
@@ -101,7 +97,6 @@ body {
     padding: 5px;
 }
 
-/* Sección de Añadir */
 .add-section {
     padding: 20px;
     display: flex;
@@ -164,7 +159,6 @@ body {
     display: none !important;
 }
 
-/* Lista de Participantes */
 .participant-list {
     list-style: none;
     padding: 0 20px;
