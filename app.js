@@ -50,8 +50,8 @@ function init() {
         });
     });
 
-    start15Btn.addEventListener('click', () => handleAddParticipant(15));
-    start20Btn.addEventListener('click', () => handleAddParticipant(20));
+    start15Btn.addEventListener('click', () => handleAddParticipant(1));
+    start20Btn.addEventListener('click', () => handleAddParticipant(2));
 }
 
 // --- LOGICA DE DATOS ---
@@ -92,7 +92,8 @@ function handleAddParticipant(minutes) {
         initialTime: minutes,
         paymentStatus: isPaid ? paymentMethodSelect.value : 'pendiente',
         endTime: Date.now() + (minutes * 60 * 1000),
-        hasLeft: false // Nueva propiedad
+        hasLeft: false,
+        alarmPlayed: false // NUEVA PROPIEDAD: Evita que la alarma suene múltiples veces
     };
 
     participants.unshift(newParticipant); 
@@ -107,12 +108,23 @@ function handleAddParticipant(minutes) {
 }
 
 window.confirmExit = function(id, isChecked) {
-    const pIndex = participants.findIndex(p => p.id === id);
-    if (pIndex > -1) {
-        participants[pIndex].hasLeft = isChecked;
-        saveData();
-        const card = document.getElementById(`card-${id}`);
-        card.classList.toggle('completed', isChecked);
+    if (!isChecked) return; 
+
+    if (confirm("¿Confirmar que el participante salió del inflable?")) {
+        const pIndex = participants.findIndex(p => p.id === id);
+        if (pIndex > -1) {
+            participants[pIndex].hasLeft = true;
+            saveData();
+            
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.classList.add('completed');
+            
+            const checkbox = document.getElementById(`exit-checkbox-${id}`);
+            if (checkbox) checkbox.disabled = true;
+        }
+    } else {
+        const checkbox = document.getElementById(`exit-checkbox-${id}`);
+        if (checkbox) checkbox.checked = false;
     }
 }
 
@@ -172,13 +184,13 @@ function renderAllParticipants() {
             </div>` : '';
 
         let exitHtml = `
-            <div id="exit-control-${p.id}" class="exit-box hidden">
-                <label class="exit-label">
-                    <input type="checkbox" ${p.hasLeft ? 'checked' : ''} onchange="confirmExit('${p.id}', this.checked)">
-                    <span class="material-icons">logout</span> ¿Salió del inflable?
-                </label>
-            </div>
-        `;
+                <div id="exit-control-${p.id}" class="exit-box hidden">
+                    <label class="exit-label">
+                        <input type="checkbox" id="exit-checkbox-${p.id}" ${p.hasLeft ? 'checked disabled' : ''} onchange="confirmExit('${p.id}', this.checked)">
+                        <span class="material-icons">logout</span> ¿Salió del inflable?
+                    </label>
+                </div>
+            `;
 
         li.innerHTML = `
             <div class="card-header">
@@ -219,16 +231,19 @@ function updateParticipantCardDOM(participant, cardElement, currentTime = Date.n
     const timeDiff = participant.endTime - currentTime;
     
     if (timeDiff <= 0) {
-            timerEl.textContent = "00:00";
+        timerEl.textContent = "00:00";
 
         if (!cardElement.classList.contains('time-up')) {
             cardElement.classList.add('time-up');
             if (exitControl) exitControl.classList.remove('hidden');
+        }
+
+        // NUEVA LÓGICA: Solo suena si no ha sonado antes para este participante
+        if (!participant.alarmPlayed) {
+            participant.alarmPlayed = true;
+            saveData(); // Guardamos para que al recargar la página no vuelva a sonar
             
-            // DISPARAR ALERTA
             playAlarm();
-            
-            // Opcional: vibración
             if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
         }
     } else {
