@@ -18,11 +18,19 @@
         <header class="sticky-header">
             <div class="header-info">
                 <span id="current-date" class="date-text"></span>
-                <span class="participant-count"><span id="count-number">0</span> Participantes Hoy</span>
+                <div class="stats-container">
+                    <span class="participant-count"><span id="count-number">0</span> Hoy</span>
+                    <span class="active-count"><span id="active-number">0</span> Activos</span>
+                </div>
             </div>
-            <button id="theme-toggle" class="icon-btn">
-                <span class="material-icons" id="theme-icon">dark_mode</span>
-            </button>
+            <div class="header-actions">
+                <button id="reset-btn" class="icon-btn text-danger">
+                    <span class="material-icons">delete_sweep</span>
+                </button>
+                <button id="theme-toggle" class="icon-btn">
+                    <span class="material-icons" id="theme-icon">dark_mode</span>
+                </button>
+            </div>
         </header>
 
         <main>
@@ -32,7 +40,27 @@
                 </button>
                 <div id="add-form" class="hidden form-card">
                     <input type="text" id="participant-name" placeholder="Nombre del participante" autocomplete="off">
-                    <button id="start-btn" class="primary-btn">Comenzar (16:00)</button>
+                    
+                    <div class="payment-section">
+                        <p class="section-label">¿Pagó?</p>
+                        <div class="radio-group">
+                            <label><input type="radio" name="paid-status" value="si" checked> Sí</label>
+                            <label><input type="radio" name="paid-status" value="pendiente"> Pendiente</label>
+                        </div>
+                    </div>
+
+                    <div id="payment-method-section" class="payment-section">
+                        <p class="section-label">Método de pago</p>
+                        <select id="payment-method" class="custom-select">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="start-15-btn" class="primary-btn">Iniciar 15 min</button>
+                        <button id="start-20-btn" class="primary-btn">Iniciar 20 min</button>
+                    </div>
                 </div>
             </div>
 
