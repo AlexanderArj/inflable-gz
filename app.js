@@ -76,6 +76,13 @@ function handleAddParticipant(minutes) {
     if (!name) return;
 
     const isPaid = document.querySelector('input[name="paid-status"]:checked').value === 'si';
+    
+    // VALIDACIÓN: Si pagó, verificar que haya seleccionado un método
+    if (isPaid && !paymentMethodSelect.value) {
+        alert("Por favor, selecciona un método de pago.");
+        return;
+    }
+
     const paymentStatus = isPaid ? paymentMethodSelect.value : 'pendiente';
 
     const newParticipant = {
@@ -93,7 +100,7 @@ function handleAddParticipant(minutes) {
     participantNameInput.value = '';
     document.querySelector('input[name="paid-status"][value="si"]').checked = true;
     paymentMethodSection.classList.remove('hidden');
-    paymentMethodSelect.value = 'efectivo';
+    paymentMethodSelect.value = '';
     addForm.classList.add('hidden');
     
     renderAllParticipants();
@@ -126,6 +133,13 @@ window.toggleResolveMethod = function(id, isChecked) {
 
 window.confirmPayment = function(id) {
     const methodSelect = document.getElementById(`resolve-method-${id}`);
+
+    // VALIDACion
+    if (!methodSelect.value) {
+        alert("Por favor, selecciona un método de pago.");
+        return;
+    }
+
     const pIndex = participants.findIndex(p => p.id === id);
     if (pIndex > -1) {
         participants[pIndex].paymentStatus = methodSelect.value;
@@ -148,6 +162,7 @@ function renderAllParticipants() {
                     <label><input type="checkbox" onchange="toggleResolveMethod('${p.id}', this.checked)"> Confirmar pago realizado</label>
                     <div id="resolve-box-${p.id}" class="hidden resolve-flex">
                         <select id="resolve-method-${p.id}" class="custom-select" style="flex:1; padding:8px;">
+                            <option value="" disabled selected>Seleccionar</option>
                             <option value="efectivo">Efectivo</option>
                             <option value="transferencia">Transferencia</option>
                         </select>
