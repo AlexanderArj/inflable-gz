@@ -50,8 +50,8 @@ function init() {
         });
     });
 
-    start15Btn.addEventListener('click', () => handleAddParticipant(1));
-    start20Btn.addEventListener('click', () => handleAddParticipant(2));
+    start15Btn.addEventListener('click', () => handleAddParticipant(15));
+    start20Btn.addEventListener('click', () => handleAddParticipant(20));
 }
 
 // --- LOGICA DE DATOS ---
