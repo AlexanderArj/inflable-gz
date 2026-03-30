@@ -2,13 +2,18 @@ let participants = [];
 let dailyTotalCount = 0;
 let timerInterval;
 
+// --- NUEVAS VARIABLES GLOBALES ---
+let isMuted = false;
+const muteToggleBtn = document.getElementById('mute-toggle');
+const muteIcon = document.getElementById('mute-icon');
+const alarmSound = document.getElementById('alarm-sound');
+
 const themeToggleBtn = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const currentDateEl = document.getElementById('current-date');
 const countNumberEl = document.getElementById('count-number');
 const activeNumberEl = document.getElementById('active-number');
 const resetBtn = document.getElementById('reset-btn');
-
 const showAddFormBtn = document.getElementById('show-add-form-btn');
 const addForm = document.getElementById('add-form');
 const participantNameInput = document.getElementById('participant-name');
@@ -25,11 +30,14 @@ function init() {
     loadData();
     renderAllParticipants();
     updateCountsUI();
+    loadMuteStatus();
     
     timerInterval = setInterval(tick, 1000);
 
     themeToggleBtn.addEventListener('click', toggleTheme);
     resetBtn.addEventListener('click', handleResetApp);
+
+    muteToggleBtn.addEventListener('click', toggleMute);
     
     showAddFormBtn.addEventListener('click', () => {
         addForm.classList.toggle('hidden');
@@ -38,11 +46,7 @@ function init() {
 
     paidStatusRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
-            if(e.target.value === 'si') {
-                paymentMethodSection.classList.remove('hidden');
-            } else {
-                paymentMethodSection.classList.add('hidden');
-            }
+            paymentMethodSection.classList.toggle('hidden', e.target.value !== 'si');
         });
     });
 
@@ -50,6 +54,7 @@ function init() {
     start20Btn.addEventListener('click', () => handleAddParticipant(20));
 }
 
+// --- LOGICA DE DATOS ---
 function loadData() {
     const savedParticipants = localStorage.getItem('gameTrackerParticipants');
     if (savedParticipants) participants = JSON.parse(savedParticipants);
@@ -65,81 +70,60 @@ function saveData() {
 
 function updateCountsUI() {
     countNumberEl.textContent = dailyTotalCount;
-    
     const now = Date.now();
     const activeCount = participants.filter(p => p.endTime > now).length;
     activeNumberEl.textContent = activeCount;
 }
 
+// --- ACCIONES ---
 function handleAddParticipant(minutes) {
     const name = participantNameInput.value.trim();
     if (!name) return;
 
     const isPaid = document.querySelector('input[name="paid-status"]:checked').value === 'si';
-    
-    // VALIDACIÓN: Si pagó, verificar que haya seleccionado un método
     if (isPaid && !paymentMethodSelect.value) {
         alert("Por favor, selecciona un método de pago.");
         return;
     }
 
-    const paymentStatus = isPaid ? paymentMethodSelect.value : 'pendiente';
-
     const newParticipant = {
         id: Date.now().toString(),
         name: name,
         initialTime: minutes,
-        paymentStatus: paymentStatus,
-        endTime: Date.now() + (minutes * 60 * 1000)
+        paymentStatus: isPaid ? paymentMethodSelect.value : 'pendiente',
+        endTime: Date.now() + (minutes * 60 * 1000),
+        hasLeft: false // Nueva propiedad
     };
 
     participants.unshift(newParticipant); 
     dailyTotalCount++; 
     saveData();
     
+    // Reset form
     participantNameInput.value = '';
-    document.querySelector('input[name="paid-status"][value="si"]').checked = true;
-    paymentMethodSection.classList.remove('hidden');
     paymentMethodSelect.value = '';
     addForm.classList.add('hidden');
-    
     renderAllParticipants();
 }
 
-function removeParticipant(id) {
-    participants = participants.filter(p => p.id !== id);
-    saveData();
-    renderAllParticipants();
-}
-
-function handleResetApp() {
-    const confirmDelete = confirm("¿Estás seguro de que quieres reiniciar la aplicación? Se borrarán todos los participantes y el contador volverá a 0.");
-    if (confirmDelete) {
-        participants = [];
-        dailyTotalCount = 0;
+window.confirmExit = function(id, isChecked) {
+    const pIndex = participants.findIndex(p => p.id === id);
+    if (pIndex > -1) {
+        participants[pIndex].hasLeft = isChecked;
         saveData();
-        renderAllParticipants();
+        const card = document.getElementById(`card-${id}`);
+        card.classList.toggle('completed', isChecked);
     }
 }
 
 window.toggleResolveMethod = function(id, isChecked) {
     const box = document.getElementById(`resolve-box-${id}`);
-    if(isChecked) {
-        box.classList.remove('hidden');
-    } else {
-        box.classList.add('hidden');
-    }
+    box.classList.toggle('hidden', !isChecked);
 }
 
 window.confirmPayment = function(id) {
     const methodSelect = document.getElementById(`resolve-method-${id}`);
-
-    // VALIDACion
-    if (!methodSelect.value) {
-        alert("Por favor, selecciona un método de pago.");
-        return;
-    }
-
+    if (!methodSelect.value) { alert("Selecciona método"); return; }
     const pIndex = participants.findIndex(p => p.id === id);
     if (pIndex > -1) {
         participants[pIndex].paymentStatus = methodSelect.value;
@@ -148,29 +132,53 @@ window.confirmPayment = function(id) {
     }
 }
 
+function removeParticipant(id) {
+    if (confirm("¿Eliminar registro?")) {
+        participants = participants.filter(p => p.id !== id);
+        saveData();
+        renderAllParticipants();
+    }
+}
+
+function handleResetApp() {
+    if (confirm("¿Reiniciar todo el día? Se borran todos los datos")) {
+        participants = [];
+        dailyTotalCount = 0;
+        saveData();
+        renderAllParticipants();
+    }
+}
+
+// --- RENDERIZADO ---
 function renderAllParticipants() {
     participantListEl.innerHTML = '';
     participants.forEach(p => {
         const li = document.createElement('li');
         li.id = `card-${p.id}`;
-        li.className = 'participant-card';
+        li.className = `participant-card ${p.hasLeft ? 'completed' : ''}`;
         
-        let pendingHtml = '';
-        if (p.paymentStatus === 'pendiente') {
-            pendingHtml = `
-                <div class="pending-box">
-                    <label><input type="checkbox" onchange="toggleResolveMethod('${p.id}', this.checked)"> Confirmar pago realizado</label>
-                    <div id="resolve-box-${p.id}" class="hidden resolve-flex">
-                        <select id="resolve-method-${p.id}" class="custom-select" style="flex:1; padding:8px;">
-                            <option value="" disabled selected>Seleccionar</option>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                        </select>
-                        <button class="small-btn" onclick="confirmPayment('${p.id}')">Guardar</button>
-                    </div>
+        // Bloque de Pago Pendiente
+        let pendingHtml = p.paymentStatus === 'pendiente' ? `
+            <div class="pending-box">
+                <label><input type="checkbox" onchange="toggleResolveMethod('${p.id}', this.checked)"> Confirmar pago</label>
+                <div id="resolve-box-${p.id}" class="hidden resolve-flex">
+                    <select id="resolve-method-${p.id}" class="custom-select">
+                        <option value="" disabled selected>Método</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                    <button class="small-btn" onclick="confirmPayment('${p.id}')">OK</button>
                 </div>
-            `;
-        }
+            </div>` : '';
+
+        let exitHtml = `
+            <div id="exit-control-${p.id}" class="exit-box hidden">
+                <label class="exit-label">
+                    <input type="checkbox" ${p.hasLeft ? 'checked' : ''} onchange="confirmExit('${p.id}', this.checked)">
+                    <span class="material-icons">logout</span> ¿Salió del inflable?
+                </label>
+            </div>
+        `;
 
         li.innerHTML = `
             <div class="card-header">
@@ -184,6 +192,7 @@ function renderAllParticipants() {
                 <span class="p-timer" id="timer-${p.id}">--:--</span>
             </div>
             ${pendingHtml}
+            ${exitHtml}
             <div class="card-actions">
                 <button class="delete-btn" onclick="removeParticipant('${p.id}')">
                     <span class="material-icons">delete</span>
@@ -197,42 +206,40 @@ function renderAllParticipants() {
 
 function tick() {
     const now = Date.now();
-    let requiresActiveCountUpdate = false;
-
     participants.forEach(p => {
         const cardEl = document.getElementById(`card-${p.id}`);
-        if (cardEl) {
-            const changed = updateParticipantCardDOM(p, cardEl, now);
-            if (changed) requiresActiveCountUpdate = true;
-        }
+        if (cardEl) updateParticipantCardDOM(p, cardEl, now);
     });
-
     updateCountsUI();
 }
 
 function updateParticipantCardDOM(participant, cardElement, currentTime = Date.now()) {
     const timerEl = cardElement.querySelector(`#timer-${participant.id}`);
+    const exitControl = cardElement.querySelector(`#exit-control-${participant.id}`);
     const timeDiff = participant.endTime - currentTime;
-    let stateChanged = false;
     
     if (timeDiff <= 0) {
-        timerEl.textContent = "00:00";
+            timerEl.textContent = "00:00";
+
         if (!cardElement.classList.contains('time-up')) {
             cardElement.classList.add('time-up');
-            stateChanged = true;
+            if (exitControl) exitControl.classList.remove('hidden');
+            
+            // DISPARAR ALERTA
+            playAlarm();
+            
+            // Opcional: vibración
+            if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
         }
     } else {
-        if (cardElement.classList.contains('time-up')) {
-            cardElement.classList.remove('time-up');
-            stateChanged = true;
-        }
+        cardElement.classList.remove('time-up');
+        if(exitControl && !participant.hasLeft) exitControl.classList.add('hidden');
+        
         const totalSeconds = Math.floor(timeDiff / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
-    
-    return stateChanged;
 }
 
 function setupDate() {
@@ -242,8 +249,7 @@ function setupDate() {
 
 function toggleTheme() {
     const htmlEl = document.documentElement;
-    const currentTheme = htmlEl.getAttribute('data-theme');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    const newTheme = htmlEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     htmlEl.setAttribute('data-theme', newTheme);
     themeIcon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
     localStorage.setItem('gameTrackerTheme', newTheme);
@@ -253,6 +259,32 @@ function loadTheme() {
     const savedTheme = localStorage.getItem('gameTrackerTheme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     themeIcon.textContent = savedTheme === 'light' ? 'dark_mode' : 'light_mode';
+}
+
+// --- LOGICA DE SONIDO Y MUTE ---
+
+function loadMuteStatus() {
+    const savedMute = localStorage.getItem('gameTrackerMuted');
+    isMuted = savedMute === 'true';
+    updateMuteUI();
+}
+
+function toggleMute() {
+    isMuted = !isMuted;
+    localStorage.setItem('gameTrackerMuted', isMuted);
+    updateMuteUI();
+}
+
+function updateMuteUI() {
+    muteIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
+    muteToggleBtn.classList.toggle('is-muted', isMuted);
+}
+
+function playAlarm() {
+    if (!isMuted) {
+        alarmSound.currentTime = 0; // Reinicia el audio por si suena seguido
+        alarmSound.play().catch(e => console.log("El navegador bloqueó el audio hasta que haya interacción."));
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);
