@@ -37,6 +37,11 @@ function init() {
     themeToggleBtn.addEventListener('click', toggleTheme);
     resetBtn.addEventListener('click', handleResetApp);
 
+    const cleanOldBtn = document.getElementById('clean-old-btn');
+    if (cleanOldBtn) {
+        cleanOldBtn.addEventListener('click', clearCompletedParticipants);
+    }
+    
     muteToggleBtn.addEventListener('click', toggleMute);
     
     showAddFormBtn.addEventListener('click', () => {
@@ -66,6 +71,8 @@ function saveData() {
     localStorage.setItem('gameTrackerParticipants', JSON.stringify(participants));
     localStorage.setItem('gameTrackerTotalCount', dailyTotalCount.toString());
     updateCountsUI();
+    
+    checkStorageQuota(); 
 }
 
 function updateCountsUI() {
@@ -299,6 +306,42 @@ function playAlarm() {
     if (!isMuted) {
         alarmSound.currentTime = 0; // Reinicia el audio por si suena seguido
         alarmSound.play().catch(e => console.log("El navegador bloqueó el audio hasta que haya interacción."));
+    }
+}
+
+
+function checkStorageQuota() {
+    let totalBytes = 0;
+    for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+            totalBytes += ((localStorage[key].length + key.length) * 2); 
+        }
+    }
+    
+    const maxBytes = 5 * 1024 * 1024; // Límite estándar de 5MB
+    const warningThreshold = maxBytes * 0.8; // Advertir al 80% (4MB)
+    
+    if (totalBytes > warningThreshold) {
+        alert("⚠️ ATENCIÓN: La memoria del navegador está casi llena. Por favor, elimina a los participantes que ya salieron para evitar que la aplicación deje de guardar.");
+    }
+}
+
+function clearCompletedParticipants() {
+    const initialCount = participants.length;
+    const activeParticipants = participants.filter(p => !p.hasLeft);
+    
+    const removedCount = initialCount - activeParticipants.length;
+    
+    if (removedCount === 0) {
+        alert("No hay registros completados para limpiar.");
+        return;
+    }
+
+    if (confirm(`¿Deseas borrar los ${removedCount} registros de los niños que ya salieron del inflable para liberar espacio?`)) {
+        participants = activeParticipants;
+        saveData(); // Esto actualizará el localStorage
+        renderAllParticipants();
+        alert("✅ Limpieza de memoria exitosa.");
     }
 }
 
