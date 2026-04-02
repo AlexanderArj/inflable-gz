@@ -97,6 +97,7 @@ function handleAddParticipant(minutes) {
         id: Date.now().toString(),
         name: name,
         initialTime: minutes,
+        startTime: Date.now(),
         paymentStatus: isPaid ? paymentMethodSelect.value : 'pendiente',
         endTime: Date.now() + (minutes * 60 * 1000),
         hasLeft: false,
@@ -168,14 +169,20 @@ function handleResetApp() {
     }
 }
 
-// --- RENDERIZADO ---
 function renderAllParticipants() {
     participantListEl.innerHTML = '';
     participants.forEach(p => {
         const li = document.createElement('li');
         li.id = `card-${p.id}`;
         li.className = `participant-card ${p.hasLeft ? 'completed' : ''}`;
-        
+
+            let startTimestamp = p.startTime || (p.endTime - (p.initialTime * 60 * 1000));
+            let startTimeString = new Date(startTimestamp).toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            });
+                
         // Bloque de Pago Pendiente
         let pendingHtml = p.paymentStatus === 'pendiente' ? `
             <div class="pending-box">
@@ -199,25 +206,27 @@ function renderAllParticipants() {
                 </div>
             `;
 
-        li.innerHTML = `
-            <div class="card-header">
-                <div class="p-info">
-                    <span class="p-name">${p.name}</span>
-                    <div class="badges">
-                        <span class="badge b-time">${p.initialTime} min</span>
-                        <span class="badge b-${p.paymentStatus}">${p.paymentStatus}</span>
+            li.innerHTML = `
+                <div class="card-header">
+                    <div class="p-info">
+                        <span class="p-name">${p.name}</span>
+                        <div class="badges">
+                            <span class="badge b-time">${p.initialTime} min</span>
+                            <span class="badge b-${p.paymentStatus}">${p.paymentStatus}</span>
+                        </div>
                     </div>
+                    <span class="p-timer" id="timer-${p.id}">--:--</span>
                 </div>
-                <span class="p-timer" id="timer-${p.id}">--:--</span>
-            </div>
-            ${pendingHtml}
-            ${exitHtml}
-            <div class="card-actions">
-                <button class="delete-btn" onclick="removeParticipant('${p.id}')">
-                    <span class="material-icons">delete</span>
-                </button>
-            </div>
-        `;
+                ${pendingHtml}
+                ${exitHtml}
+                <div class="card-actions">
+                    <span class="start-time-label">Hora Inicio: ${startTimeString}</span>
+                    <button class="delete-btn" onclick="removeParticipant('${p.id}')">
+                        <span class="material-icons">delete</span>
+                    </button>
+                </div>
+            `;
+
         participantListEl.appendChild(li);
         updateParticipantCardDOM(p, li);
     });

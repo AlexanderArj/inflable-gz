@@ -64,6 +64,9 @@ body { background-color: var(--bg-color); color: var(--text-main); transition: 0
 .p-name { font-size: 1.2rem; font-weight: bold; }
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
 .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 12px; font-weight: bold; text-transform: uppercase; color: white; }
+.b-start { 
+    background-color: var(--text-secondary); 
+}
 .b-time { background-color: var(--primary-color); }
 .b-efectivo { background-color: var(--success-color); }
 .b-transferencia { background-color: var(--purple-color); }
@@ -75,9 +78,35 @@ body { background-color: var(--bg-color); color: var(--text-main); transition: 0
 .resolve-flex { display: flex; gap: 10px; }
 .small-btn { background-color: var(--success-color); color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; }
 
-.card-actions { display: flex; justify-content: flex-end; }
-.delete-btn { background: none; border: none; color: var(--danger-color); padding: 5px; font-size: 1.2rem; }
+/* .card-actions { display: flex; justify-content: flex-end; } */
 
+.card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.start-time-label {
+    background-color: #e6f4ea;    
+    color: #137333;    
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid #d2e3fc;
+}
+
+[data-theme="dark"] .start-time-label {
+    background-color: #0d3b2a;
+    color: #72f1b8;
+    /* border: 1px solid #34495e; */
+}
+
+.delete-btn { background: none; border: none; color: var(--danger-color); padding: 5px; font-size: 1.2rem; margin-left: 10px;}
 
 .exit-box {
     background: rgba(0, 0, 0, 0.05);
